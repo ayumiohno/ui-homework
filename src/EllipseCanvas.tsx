@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Stage, Layer, Text } from 'react-konva';
 import { EllipseComponent, EllipsePos } from './EllipseComponent';
+import SpeechRecognition, {
+    useSpeechRecognition,
+} from "react-speech-recognition";
+
 
 type KeyMode = 'move' | 'scale' | 'rotate';
 
@@ -19,6 +23,13 @@ const EllipseCanvas: React.FC = () => {
         setEllipses([...ellipses, { x: clientX, y: clientY, radiusX: 100, radiusY: 50, rotation: 0, idx: ellipseNumber }]);
         setEllipseNumber(prev => prev + 1);
     };
+
+    const {
+        transcript,
+        listening,
+        resetTranscript,
+        browserSupportsSpeechRecognition,
+    } = useSpeechRecognition();
 
     const handleOnKeyDown = (e: any) => {
         console.log(e.key);
@@ -106,13 +117,48 @@ const EllipseCanvas: React.FC = () => {
         }
     }
 
+    useEffect(() => {
+        if (transcript.match(/[0-9]/) != null) {
+            setShowGuides(parseInt(transcript.match(/[0-9]/)![0]));
+            resetTranscript();
+        } else if (transcript.includes('M') || transcript.includes('S') || transcript.includes('R')) {
+            switch (transcript) {
+                case 'M': setKeyMode('move'); break;
+                case 'S': setKeyMode('scale'); break;
+                case 'R': setKeyMode('rotate'); break;
+            }
+            resetTranscript();
+        } else if (transcript.includes('A')) {
+            const baseEllapse = showGuides != null ? ellipses.find(ellipse => ellipse.idx === showGuides) : ellipses[ellipses.length - 1];
+            setShowGuides(ellipseNumber);
+            if (baseEllapse != null) {
+                setEllipses([...ellipses, { x: baseEllapse.x + 20, y: baseEllapse.y + 20, radiusX: baseEllapse.radiusX, radiusY: baseEllapse.radiusY, rotation: baseEllapse.rotation, idx: ellipseNumber }]);
+            } else {
+                setEllipses([...ellipses, { x: 100, y: 100, radiusX: 100, radiusY: 50, rotation: 0, idx: ellipseNumber }]);
+            }
+            setEllipseNumber(prev => prev + 1);
+            resetTranscript();
+        }
+    }, [transcript]);
+
     return (
         <div onKeyDown={handleOnKeyDown} tabIndex={0}>
-            <h2>KeyMode</h2>
+            <div>
+                {
+                    ['move', 'scale', 'rotate'].map((mode, _) => (
+                        keyMode === mode ?
+                            <b>{mode} : {mode[0]}, </b> : <small>{mode} : {mode[0]}, </small>
+                    ))
+                }
+            </div>
+            <button onClick={() => { SpeechRecognition.startListening({ continuous: true }) }}>Use Voice</button>
+            <button onClick={() => { SpeechRecognition.stopListening() }}>Stop Voice</button>
+            <div>{transcript}</div>
             {
-                ['move', 'scale', 'rotate'].map((mode, _) => (
-                    keyMode === mode ?
-                        <b>{mode} : {mode[0]}, </b> : <small>{mode} : {mode[0]}, </small>
+                ellipses.map((ellipse, _) => (
+                    removedEllipses.find(removedEllipse => removedEllipse.idx === ellipse.idx) == null &&
+                        showGuides === ellipse.idx ?
+                        <b>{ellipse.idx}, </b> : <small>{ellipse.idx}, </small>
                 ))
             }
             <Stage width={window.innerWidth * 0.6} height={window.innerHeight * 0.6} onDblClick={handleStageClick}>
