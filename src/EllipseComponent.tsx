@@ -1,6 +1,5 @@
-import React, { ComponentProps, ReactNode, useEffect, useRef } from 'react';
-import { Text, Ellipse, Rect, Group } from 'react-konva';
-import Konva from 'konva';
+import React, { ComponentProps, useEffect, useRef, useState } from 'react';
+import { Text, Ellipse, Rect, Group, Line, Circle } from 'react-konva';
 
 export type EllipsePos = {
     x: number,
@@ -22,9 +21,14 @@ type EllipseComponentProps = {
 
 export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, setShowGuides, showNumbers, ellipse, setEllipse, setKeyMode }) => {
     const groupRef: ComponentProps<typeof Group>["ref"] = useRef(null);
+    const guideSize = 15;
+    const rotateGuideLength = 15;
+    const [rotating, setRotating] = useState<boolean>(false);
+    const [dragPos, setDragPos] = useState<{ x: number, y: number }>({ x: ellipse.x + rotatePoint({ x: 0, y: -ellipse.radiusY - rotateGuideLength }, { x: 0, y: 0 }, ellipse.rotation).x, y: ellipse.y + rotatePoint({ x: 0, y: -ellipse.radiusY - rotateGuideLength }, { x: 0, y: 0 }, ellipse.rotation).y });
 
     function handleMove(e: any) {
-        setKeyMode('move')
+        setKeyMode('move');
+        setShowGuides(ellipse.idx);
         setEllipse({
             ...ellipse,
             x: e.target.x(),
@@ -32,12 +36,18 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
         });
     }
 
+    function setDefaulteDragPos() {
+        setDragPos({ x: ellipse.x + rotatePoint({ x: 0, y: -ellipse.radiusY - rotateGuideLength }, { x: 0, y: 0 }, ellipse.rotation).x, y: ellipse.y + rotatePoint({ x: 0, y: -ellipse.radiusY - rotateGuideLength }, { x: 0, y: 0 }, ellipse.rotation).y });
+
+    }
+
     useEffect(() => { if (showGuides === ellipse.idx) { setKeyMode('move'); groupRef?.current?.moveToTop(); } }, [showGuides]);
+    useEffect(() => { if (!rotating) setDefaulteDragPos() }, [ellipse]);
 
     function handleScale(e: any, pos: string) {
         setKeyMode('scale');
-        var target_x = e.target.x() + rotatePoint({ x: 5, y: 5 }, { x: 0, y: 0 }, ellipse.rotation).x;
-        var target_y = e.target.y() + rotatePoint({ x: 5, y: 5 }, { x: 0, y: 0 }, ellipse.rotation).y;
+        var target_x = e.target.x() + rotatePoint({ x: guideSize / 2, y: guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).x;
+        var target_y = e.target.y() + rotatePoint({ x: guideSize / 2, y: guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).y;
         var opposite_x = 0;
         var opposite_y = 0;
         switch (pos) {
@@ -75,13 +85,24 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
 
     function handleRotation(e: any) {
         setKeyMode('rotate')
-        var target_x = e.target.x() + rotatePoint({ x: 5, y: 5 + 10 }, { x: 0, y: 0 }, ellipse.rotation).x;
-        var target_y = e.target.y() + rotatePoint({ x: 5, y: 5 + 10 }, { x: 0, y: 0 }, ellipse.rotation).y;
+        // var target_x = e.target.getStage().getPointerPosition().x;
+        // var target_y = e.target.getStage().getPointerPosition().y;
+        var target_x = e.target.x() + rotatePoint({ x: guideSize / 2, y: guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).x;
+        var target_y = e.target.y() + rotatePoint({ x: guideSize / 2, y: guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).y;
+        const distFromCenter = Math.sqrt((target_x - ellipse.x) ** 2 + (target_y - ellipse.y) ** 2);
+        if (distFromCenter < ellipse.radiusY) {
+            target_x = ellipse.x + (getExactPositionOfControlPoint("top-right").x + getExactPositionOfControlPoint("top-left").x) / 2;
+            target_y = ellipse.y + (getExactPositionOfControlPoint("top-right").y + getExactPositionOfControlPoint("top-left").y) / 2;
+            e.target.x(ellipse.x + (getPositionOfControlPoint("top-right").x + getPositionOfControlPoint("top-left").x) / 2);
+            e.target.y(ellipse.y + (getPositionOfControlPoint("top-right").y + getPositionOfControlPoint("top-left").y) / 2);
+        }
         var new_rotation = Math.atan2(target_x - ellipse.x, ellipse.y - target_y) * 180 / Math.PI;
+        e.target.preventDefault();
         setEllipse({
             ...ellipse,
             rotation: new_rotation,
         });
+        setDragPos({ x: target_x, y: target_y });
     }
 
     function rotatePoint(point: any, center: any, angle: number) {
@@ -97,13 +118,13 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
     function getPositionOfControlPoint(pos: string) {
         switch (pos) {
             case "top-left":
-                return rotatePoint({ x: -ellipse.radiusX - 5, y: -ellipse.radiusY - 5 }, { x: 0, y: 0 }, ellipse.rotation);
+                return rotatePoint({ x: -ellipse.radiusX - guideSize / 2, y: -ellipse.radiusY - guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation);
             case "top-right":
-                return rotatePoint({ x: ellipse.radiusX - 5, y: -ellipse.radiusY - 5 }, { x: 0, y: 0 }, ellipse.rotation);
+                return rotatePoint({ x: ellipse.radiusX - guideSize / 2, y: -ellipse.radiusY - guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation);
             case "bottom-left":
-                return rotatePoint({ x: -ellipse.radiusX - 5, y: ellipse.radiusY - 5 }, { x: 0, y: 0 }, ellipse.rotation);
+                return rotatePoint({ x: -ellipse.radiusX - guideSize / 2, y: ellipse.radiusY - guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation);
             default:
-                return rotatePoint({ x: ellipse.radiusX - 5, y: ellipse.radiusY - 5 }, { x: 0, y: 0 }, ellipse.rotation);
+                return rotatePoint({ x: ellipse.radiusX - guideSize / 2, y: ellipse.radiusY - guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation);
         }
     }
 
@@ -119,7 +140,6 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
                 return rotatePoint({ x: ellipse.radiusX, y: ellipse.radiusY }, { x: 0, y: 0 }, ellipse.rotation);
         }
     }
-
 
     return (
         <Group ref={groupRef}>
@@ -150,8 +170,8 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
                     key={pos}
                     x={getPositionOfControlPoint(pos).x + ellipse.x}
                     y={getPositionOfControlPoint(pos).y + ellipse.y}
-                    width={10}
-                    height={10}
+                    width={guideSize}
+                    height={guideSize}
                     fill="red"
                     draggable
                     onDragMove={(e) => handleScale(e, pos)}
@@ -160,15 +180,28 @@ export const EllipseComponent: React.FC<EllipseComponentProps> = ({ showGuides, 
             ))}
             {showGuides === ellipse.idx &&
                 <Rect
-                    x={ellipse.x + rotatePoint({ x: 0, y: -ellipse.radiusY - 10 - 5 }, { x: 0, y: 0 }, ellipse.rotation).x}
-                    y={ellipse.y + rotatePoint({ x: 0, y: -ellipse.radiusY - 10 - 5 }, { x: 0, y: 0 }, ellipse.rotation).y}
-                    width={10}
-                    height={10}
+                    x={dragPos.x + rotatePoint({ x: -guideSize / 2, y: -guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).x}
+                    y={dragPos.y + rotatePoint({ x: -guideSize / 2, y: -guideSize / 2 }, { x: 0, y: 0 }, ellipse.rotation).y}
+                    width={guideSize}
+                    height={guideSize}
                     fill="green"
                     draggable
                     onDragMove={handleRotation}
+                    onDragStart={() => setRotating(true)}
+                    onDragEnd={() => { setDefaulteDragPos(); setRotating(false); }}
                     rotation={ellipse.rotation}
                 />
+            }
+            {
+                showGuides === ellipse.idx &&
+                <Line
+                    points={[
+                        (getExactPositionOfControlPoint("top-left").x + getExactPositionOfControlPoint("top-right").x) / 2 + ellipse.x,
+                        (getExactPositionOfControlPoint("top-left").y + getExactPositionOfControlPoint("top-right").y) / 2 + ellipse.y,
+                        dragPos.x,
+                        dragPos.y,
+                    ]}
+                    stroke="green" strokeWidth={2} />
             }
             {
                 showNumbers &&
