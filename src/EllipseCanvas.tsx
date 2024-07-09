@@ -9,7 +9,7 @@ import { useVolumeLevel } from "react-volume-indicator"
 type KeyMode = 'move' | 'scale' | 'rotate';
 
 const EllipseCanvas: React.FC = () => {
-    const [volumeMin, setVolumeMin] = useState<number>(0);
+    const [volumeMin, setVolumeMin] = useState<number>(2);
     const [volumeThreshold, setVolumeThreshold] = useState<number>(10);
     const [ellipses, setEllipses] = useState<EllipsePos[]>([]);
     const [showGuides, setShowGuides] = useState<number | null>(null);
