@@ -250,7 +250,7 @@ const EllipseCanvas: React.FC = () => {
                         ))
                     }
                 </div>
-                <p style={{ alignSelf: 'flex-start' }}>3. 移動: <small>マウスドラッグ, msrと矢印キー, msrxyと音量 </small></p>
+                <p style={{ alignSelf: 'flex-start' }}>3. 移動: <small>ドラッグ, msrと矢印キー, msrxy発音と音量 </small></p>
                 <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignSelf: 'center' }}>
                     {
                         ['move', 'scale', 'rotate'].map((mode, _) => (
