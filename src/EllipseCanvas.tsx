@@ -223,6 +223,28 @@ const EllipseCanvas: React.FC = () => {
     return (
         <div className="container" style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
             <div onKeyDown={handleOnKeyDown} tabIndex={0} style={{ flex: '1', border: '1px splid #fff', borderRadius: '8px', padding: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'row', gap: '30px', alignSelf: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignSelf: 'center' }}>
+                        <small><b>選択中のモード </b></small>
+                        {
+                            ['move', 'scale', 'rotate'].map((mode, _) => (
+                                keyMode === mode ?
+                                    <small><b>{mode} : {mode[0]}</b></small> : <small>{mode} : {mode[0]}</small>
+                            ))
+                        }
+                        {listening && <small> xy: <b>{xyForVoice}</b></small>}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignSelf: 'center' }}>
+                        <small><b>選択中の楕円 </b></small>
+                        {
+                            ellipses.map((ellipse, _) => (
+                                removedEllipses.find(removedEllipse => removedEllipse.idx === ellipse.idx) == null &&
+                                (showGuides === ellipse.idx ?
+                                    <small><b>{ellipse.idx}</b></small> : <small>{ellipse.idx}</small>)
+                            ))
+                        }
+                    </div>
+                </div>
                 <Stage width={window.innerWidth * 0.6} height={window.innerHeight * 0.9} onDblClick={handleStageClick} style={{ border: '1px splid #fff', borderRadius: '8px' }}>
                     <Layer>
                         {ellipses.map((ellipse, _) => (
@@ -250,28 +272,38 @@ const EllipseCanvas: React.FC = () => {
                 </Stage>
             </div>
             <div className='control' style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ alignSelf: 'flex-start' }}>1. 楕円を追加: <small>ダブルクリック, +キー, Aと発音</small></p>
-                <p style={{ alignSelf: 'flex-start' }}>2. 選択: <small>クリック, 0-9キー, 0-9と発音 </small></p>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignSelf: 'center' }}>
-                    {
-                        ellipses.map((ellipse, _) => (
-                            removedEllipses.find(removedEllipse => removedEllipse.idx === ellipse.idx) == null &&
-                            (showGuides === ellipse.idx ?
-                                <small><b>{ellipse.idx}</b></small> : <small>{ellipse.idx}</small>)
-                        ))
-                    }
-                </div>
-                <p style={{ alignSelf: 'flex-start' }}>3. 移動: <small>ドラッグ, msrと矢印キー, msrxy発音と音量 </small></p>
-                <div style={{ display: 'flex', flexDirection: 'row', gap: '10px', alignSelf: 'center' }}>
-                    {
-                        ['move', 'scale', 'rotate'].map((mode, _) => (
-                            keyMode === mode ?
-                                <small><b>{mode} : {mode[0]}</b></small> : <small>{mode} : {mode[0]}</small>
-                        ))
-                    }
-                    {listening && <small> xy: <b>{xyForVoice}</b></small>}
-                </div>
-                <p style={{ alignSelf: 'flex-start' }}>4. Voice情報</p>
+                <p style={{ alignSelf: 'flex-start' }}>操作方法</p>
+                <table style={{ fontSize: "medium", border: "1" }}>
+                    <tr>
+                        <th>方法</th>
+                        <th>1.楕円を追加</th>
+                        <th>2.楕円を選択</th>
+                        <th>3.移動・変形モード</th>
+                        <th>4.移動</th>
+                    </tr>
+                    <tr>
+                        <td>マウス</td>
+                        <td>ダブルクリック</td>
+                        <td>楕円をクリック</td>
+                        <td>コーナークリック</td>
+                        <td>ドラッグ</td>
+                    </tr>
+                    <tr>
+                        <td>キーボード</td>
+                        <td>+キー</td>
+                        <td>0-9キー</td>
+                        <td>m, s, rキー</td>
+                        <td>矢印キー</td>
+                    </tr>
+                    <tr>
+                        <td>音声</td>
+                        <td>Aと発音</td>
+                        <td>0-9と発音</td>
+                        <td>M, S, R, X, Yと発音</td>
+                        <td>音量(大きさ{volumeThreshold}以上で+, {volumeThreshold}未満で-)</td>
+                    </tr>
+                </table>
+                <p style={{ alignSelf: 'flex-start' }}>Voice情報・設定</p>
                 <div>
                     <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignSelf: 'center' }}>
                         <button
