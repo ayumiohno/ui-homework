@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Text } from 'react-konva';
+import { Stage, Layer, Image as KonvaImage } from 'react-konva';
 import { EllipseComponent, EllipsePos } from './EllipseComponent';
 import SpeechRecognition, {
     useSpeechRecognition,
 } from "react-speech-recognition";
 import { useVolumeLevel } from "react-volume-indicator"
+import click from './click.png'
 
 type KeyMode = 'move' | 'scale' | 'rotate';
 
@@ -20,6 +21,7 @@ const EllipseCanvas: React.FC = () => {
     const [startRecording, stopRecording, volume] = useVolumeLevel();
     const [volumes, setVolumes] = useState<number[]>([]);
     const [xyForVoice, setXYForVoice] = useState<'x' | 'y'>('x');
+    const [image, setImage] = useState<CanvasImageSource>();
 
     const handleStageClick = (e: any) => {
         const clientX = e.target.getStage().getPointerPosition().x;
@@ -37,6 +39,7 @@ const EllipseCanvas: React.FC = () => {
     } = useSpeechRecognition();
 
     const handleOnKeyDown = (e: any) => {
+        const scale = e.ctrlKey ? 5 : 1;
         console.log(e.key);
         if (e.key === 'Escape') {
             setShowGuides(null);
@@ -48,21 +51,20 @@ const EllipseCanvas: React.FC = () => {
             }
         } else if (/^[0-9]$/.test(e.key)) {
             setShowGuides(parseInt(e.key));
-        } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'h', 'j', 'k', 'l'].includes(e.key)) {
             if (showGuides != null) {
                 switch (keyMode) {
                     case 'move':
                         setEllipses((prev) => prev.map(ellipse => {
                             if (ellipse.idx === showGuides) {
-                                switch (e.key) {
-                                    case 'ArrowUp':
-                                        return { ...ellipse, y: ellipse.y - 5 };
-                                    case 'ArrowDown':
-                                        return { ...ellipse, y: ellipse.y + 5 };
-                                    case 'ArrowLeft':
-                                        return { ...ellipse, x: ellipse.x - 5 };
-                                    case 'ArrowRight':
-                                        return { ...ellipse, x: ellipse.x + 5 };
+                                if (['ArrowUp', 'k'].includes(e.key)) {
+                                    return { ...ellipse, y: ellipse.y - 5 * scale };
+                                } else if (['ArrowDown', 'j'].includes(e.key)) {
+                                    return { ...ellipse, y: ellipse.y + 5 * scale };
+                                } else if (['ArrowLeft', 'h'].includes(e.key)) {
+                                    return { ...ellipse, x: ellipse.x - 5 * scale };
+                                } else if (['ArrowRight', 'l'].includes(e.key)) {
+                                    return { ...ellipse, x: ellipse.x + 5 * scale };
                                 }
                             }
                             return ellipse;
@@ -71,15 +73,10 @@ const EllipseCanvas: React.FC = () => {
                     case 'rotate':
                         setEllipses((prev) => prev.map(ellipse => {
                             if (ellipse.idx === showGuides) {
-                                switch (e.key) {
-                                    case 'ArrowUp':
-                                        return { ...ellipse, rotation: ellipse.rotation + 2 };
-                                    case 'ArrowDown':
-                                        return { ...ellipse, rotation: ellipse.rotation - 2 };
-                                    case 'ArrowLeft':
-                                        return { ...ellipse, rotation: ellipse.rotation - 2 };
-                                    case 'ArrowRight':
-                                        return { ...ellipse, rotation: ellipse.rotation + 2 };
+                                if (['ArrowDown', 'j', 'ArrowLeft', 'h'].includes(e.key)) {
+                                    return { ...ellipse, rotation: ellipse.rotation - 2 * scale };
+                                } else if (['ArrowUp', 'k', 'ArrowRight', 'l'].includes(e.key)) {
+                                    return { ...ellipse, rotation: ellipse.rotation + 2 * scale };
                                 }
                             }
                             return ellipse;
@@ -88,15 +85,14 @@ const EllipseCanvas: React.FC = () => {
                     case 'scale':
                         setEllipses((prev) => prev.map(ellipse => {
                             if (ellipse.idx === showGuides) {
-                                switch (e.key) {
-                                    case 'ArrowUp':
-                                        return { ...ellipse, radiusY: ellipse.radiusY + 5 };
-                                    case 'ArrowDown':
-                                        return { ...ellipse, radiusY: ellipse.radiusY - 5 };
-                                    case 'ArrowLeft':
-                                        return { ...ellipse, radiusX: ellipse.radiusX - 5 };
-                                    case 'ArrowRight':
-                                        return { ...ellipse, radiusX: ellipse.radiusX + 5 };
+                                if (['ArrowUp', 'k'].includes(e.key)) {
+                                    return { ...ellipse, radiusY: ellipse.radiusY + 5 * scale };
+                                } else if (['ArrowDown', 'j'].includes(e.key)) {
+                                    return { ...ellipse, radiusY: ellipse.radiusY - 5 * scale };
+                                } else if (['ArrowLeft', 'h'].includes(e.key)) {
+                                    return { ...ellipse, radiusX: ellipse.radiusX - 5 * scale };
+                                } else if (['ArrowRight', 'l'].includes(e.key)) {
+                                    return { ...ellipse, radiusX: ellipse.radiusX + 5 * scale };
                                 }
                             }
                             return ellipse;
@@ -110,7 +106,7 @@ const EllipseCanvas: React.FC = () => {
                 case 's': setKeyMode('scale'); break;
                 case 'r': setKeyMode('rotate'); break;
             }
-        } else if (e.key == '+') {
+        } else if (e.key == '+' || e.key == 'p') {
             const baseEllapse = showGuides != null ? ellipses.find(ellipse => ellipse.idx === showGuides) : ellipses[ellipses.length - 1];
             setShowGuides(ellipseNumber);
             if (baseEllapse != null) {
@@ -154,9 +150,6 @@ const EllipseCanvas: React.FC = () => {
 
     useEffect(() => {
         if (volumes.length > 5) {
-            // const lastAvarege = volumes.slice(-5).reduce((prev, current) => prev + current) / 10;
-            // const beforeAvarege = volumes.slice(-10, -5).reduce((prev, current) => prev + current) / 10;
-            // console.log("hello", lastAvarege, beforeAvarege);
             switch (keyMode) {
                 case 'move':
                     setEllipses((prev) => prev.map(ellipse => {
@@ -219,10 +212,18 @@ const EllipseCanvas: React.FC = () => {
         }
     }, [volume]);
 
+    useEffect(() => {
+        const image = new window.Image();
+        image.src = click;
+        image.onload = () => {
+            setImage(image);
+        };
+    }, []);
+
     return (
         <div className="container" style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
-            <div onKeyDown={handleOnKeyDown} tabIndex={0} style={{ flex: '1', border: '1px splid #ddd', borderRadius: '8px', padding: '10px' }}>
-                <Stage width={window.innerWidth * 0.6} height={window.innerHeight * 0.9} onDblClick={handleStageClick}>
+            <div onKeyDown={handleOnKeyDown} tabIndex={0} style={{ flex: '1', border: '1px splid #fff', borderRadius: '8px', padding: '10px' }}>
+                <Stage width={window.innerWidth * 0.6} height={window.innerHeight * 0.9} onDblClick={handleStageClick} style={{ border: '1px splid #fff', borderRadius: '8px' }}>
                     <Layer>
                         {ellipses.map((ellipse, _) => (
                             removedEllipses.find(removedEllipse => removedEllipse.idx === ellipse.idx) == null &&
@@ -235,6 +236,16 @@ const EllipseCanvas: React.FC = () => {
                                 setEllipse={(ellipse: EllipsePos) => { setEllipses(prev => prev.map(e => e.idx === ellipse.idx ? ellipse : e)) }}
                             />
                         ))}
+                        {ellipses.length <= removedEllipses.length &&
+                            <KonvaImage
+                                src={click}
+                                x={window.innerWidth * 0.3 - 100}
+                                y={window.innerHeight * 0.45 - 70}
+                                width={200}
+                                height={140}
+                                image={image}
+                            />
+                        }
                     </Layer>
                 </Stage>
             </div>
@@ -258,7 +269,7 @@ const EllipseCanvas: React.FC = () => {
                                 <small><b>{mode} : {mode[0]}</b></small> : <small>{mode} : {mode[0]}</small>
                         ))
                     }
-                    <small> xy (for voice): {xyForVoice} </small>
+                    {listening && <small> xy: <b>{xyForVoice}</b></small>}
                 </div>
                 <p style={{ alignSelf: 'flex-start' }}>4. Voice情報</p>
                 <div>
